@@ -1,46 +1,145 @@
 {
+  "description": "防火墙规则配置文件",
+  "version": "1.0.0",
+  "last_updated": "2026-01-16T00:00:00Z",
+
   "rules": [
     {
       "id": 1,
-      "name": "Block SSH from untrusted",
-      "action": "DENY",
+      "name": "Allow HTTP traffic",
+      "description": "允许HTTP流量通过",
+      "action": "ALLOW",
       "protocol": "TCP",
-      "dst_port": 22,
-      "ip_src": "192.168.0.0/16",
-      "priority": 100
+      "ip_src": "0.0.0.0/0",
+      "ip_dst": "0.0.0.0/0",
+      "tp_dst": 80,
+      "priority": 50,
+      "enabled": true
     },
     {
       "id": 2,
-      "name": "Allow HTTP traffic",
+      "name": "Allow HTTPS traffic",
+      "description":  "允许HTTPS流量通过",
       "action": "ALLOW",
-      "protocol": "TCP",
-      "dst_port": 80,
-      "priority": 50
+      "protocol":  "TCP",
+      "ip_src": "0.0.0.0/0",
+      "ip_dst": "0.0.0.0/0",
+      "tp_dst": 443,
+      "priority": 50,
+      "enabled": true
     },
     {
       "id": 3,
-      "name": "Allow HTTPS traffic",
+      "name": "Allow DNS traffic",
+      "description": "允许DNS查询",
       "action": "ALLOW",
-      "protocol": "TCP",
-      "dst_port": 443,
-      "priority": 50
+      "protocol": "UDP",
+      "ip_src":  "0.0.0.0/0",
+      "ip_dst": "0.0.0.0/0",
+      "tp_dst":  53,
+      "priority":  45,
+      "enabled": true
     },
     {
-      "id":  4,
-      "name":  "Block DDoS-like traffic",
-      "action":  "DENY",
+      "id": 4,
+      "name": "Allow ICMP (ping)",
+      "description": "允许ICMP用于诊断",
+      "action":  "ALLOW",
+      "protocol": "ICMP",
+      "priority": 40,
+      "enabled": true
+    },
+    {
+      "id": 5,
+      "name": "Allow SSH from trusted network",
+      "description": "仅允许来自受信网络的SSH连接",
+      "action": "ALLOW",
+      "protocol": "TCP",
+      "ip_src": "192.168.1.0/24",
+      "tp_dst": 22,
+      "priority": 100,
+      "enabled": true
+    },
+    {
+      "id": 6,
+      "name": "Block SSH from external",
+      "description": "阻止来自外部的SSH连接",
+      "action": "DENY",
+      "protocol": "TCP",
+      "tp_dst": 22,
+      "priority": 90,
+      "enabled": true
+    },
+    {
+      "id": 7,
+      "name": "Block suspicious ports",
+      "description": "阻止常见的扫描端口",
+      "action": "DENY",
+      "protocol": "TCP",
+      "tp_dst": [139, 445, 3389],
+      "priority": 80,
+      "enabled": true
+    },
+    {
+      "id": 8,
+      "name": "Block DDoS-like patterns",
+      "description": "阻止DDoS攻击模式",
+      "action": "DENY",
       "protocol": "TCP",
       "tcp_flags": 2,
       "rate_threshold": 1000,
-      "priority": 150
+      "priority": 150,
+      "enabled": true
+    },
+    {
+      "id": 9,
+      "name": "Rate limit HTTP",
+      "description": "限制HTTP流量速率",
+      "action": "RATE_LIMIT",
+      "protocol": "TCP",
+      "tp_dst": 80,
+      "rate_limit": 1000,
+      "priority": 60,
+      "enabled": false
+    },
+    {
+      "id": 10,
+      "name": "Default deny",
+      "description": "默认拒绝规则",
+      "action": "DENY",
+      "priority": 0,
+      "enabled": true
     }
   ],
+
   "blacklist": [
     "192.168.1.100",
-    "10.0.0.50"
+    "10.0.0.50",
+    "172.16.0.20"
   ],
+
   "whitelist": [
     "192.168.1.1",
-    "8.8.8.8"
-  ]
+    "192.168.1.2",
+    "8.8.8.8",
+    "1.1.1.1"
+  ],
+
+  "geoblock": {
+    "enabled": false,
+    "blocked_countries": ["CN", "RU"],
+    "allowed_countries": []
+  },
+
+  "rate_limits": {
+    "default": 1000,
+    "per_ip": 500,
+    "per_flow": 100
+  },
+
+  "timeouts": {
+    "tcp_idle": 600,
+    "udp_idle": 300,
+    "icmp_idle": 60
+  }
 }

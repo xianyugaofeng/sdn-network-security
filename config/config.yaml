@@ -1,0 +1,192 @@
+# SDN Network Security System - Global Configuration
+# SDN网络安全系统 - 全局配置文件
+
+# ==================== 系统配置 ====================
+system:
+  name: "SDN Network Security System"
+  version: "1.0.0"
+  environment: "production"  # development, staging, production
+  debug: false
+  log_level: "INFO"  # DEBUG, INFO, WARNING, ERROR, CRITICAL
+
+# ==================== Ryu控制器配置 ====================
+ryu_controller:
+  host: "0.0.0.0"
+  port: 6633
+  listen_port: 6633
+  request_timeout: 10
+  max_unreplied_msg:  128
+  switch_heartbeat_interval: 10
+
+# ==================== 防火墙配置 ====================
+firewall:
+  enabled: true
+  default_policy: "ALLOW"  # ALLOW or DENY
+  rule_update_interval: 5  # 秒
+  max_rules:  10000
+  enable_blacklist: true
+  enable_whitelist: true
+  blacklist_ttl: 3600  # 秒
+  cache_enabled: true
+  cache_size: 5000
+
+# ==================== 流量监控配置 ====================
+traffic_monitor:
+  enabled: true
+  collection_interval: 10  # 秒
+  max_flows: 10000
+  time_window: 3600  # 秒
+  export_interval: 300  # 秒
+  export_format: "json"  # json, csv
+  statistics_enabled: true
+  bandwidth_threshold: 1000  # Mbps
+
+# ==================== 入侵检测配置 ====================
+intrusion_detection:
+  enabled: true
+  detection_interval: 5  # 秒
+  alert_threshold: 0.5  # 0-1
+  use_snort: false  # 是否使用Snort
+  snort_path: "/usr/sbin/snort"
+  snort_conf:  "/etc/snort/snort.conf"
+  snort_rules: "/etc/snort/rules"
+  builtin_rules_enabled: true
+  custom_rules_enabled: true
+  alert_logging_enabled: true
+  alert_retention_days: 30
+
+# ==================== 异常检测配置 ====================
+anomaly_detection:
+  enabled: true
+  detection_interval: 60  # 秒
+  k_clusters: 3
+  max_iterations: 100
+  anomaly_threshold: 3.0  # 标准差倍数
+  training_window: 300  # 秒
+  feature_normalization: "minmax"  # minmax, zscore
+  sensitivity: "medium"  # low, medium, high
+
+# ==================== 数据库配置 ====================
+database:
+  type: "sqlite"  # sqlite, mysql, postgresql
+  path: "data/sdn_security.db"
+  host: "localhost"
+  port:  3306
+  username: "sdn_user"
+  password:  "secure_password"
+  database: "sdn_security"
+  pool_size: 10
+  max_overflow: 20
+  pool_recycle: 3600
+  echo: false
+  auto_cleanup_days: 30  # 自动清理超过N天的数据
+
+# ==================== 日志配置 ====================
+logging:
+  version: 1
+  disable_existing_loggers: false
+
+  formatters:
+    standard:
+      format: "%(asctime)s - %(name)s - %(levelname)s - [%(filename)s:%(lineno)d] - %(message)s"
+      datefmt: "%Y-%m-%d %H:%M:%S"
+
+    colored:
+      format: "%(asctime)s - %(name)s - %(levelname)s - %(message)s"
+      datefmt: "%Y-%m-%d %H:%M:%S"
+
+  handlers:
+    console:
+      class: "logging.StreamHandler"
+      level: "DEBUG"
+      formatter:  "standard"
+      stream: "ext://sys.stdout"
+
+    file:
+      class: "logging.handlers.RotatingFileHandler"
+      level: "DEBUG"
+      formatter: "standard"
+      filename: "logs/sdn_security.log"
+      maxBytes: 10485760  # 10MB
+      backupCount: 10
+
+    error_file:
+      class: "logging.handlers.RotatingFileHandler"
+      level: "ERROR"
+      formatter: "standard"
+      filename: "logs/errors.log"
+      maxBytes: 10485760
+      backupCount: 5
+
+  loggers:
+    ryu:
+      level: "INFO"
+      handlers: ["console", "file"]
+      propagate: false
+
+    sdn_security:
+      level:  "DEBUG"
+      handlers: ["console", "file"]
+      propagate:  false
+
+  root:
+    level:  "INFO"
+    handlers: ["console", "file", "error_file"]
+
+# ==================== API配置 ====================
+api:
+  enabled: false
+  host: "0.0.0.0"
+  port: 5000
+  debug: false
+  threaded: true
+  max_content_length: 16777216  # 16MB
+
+# ==================== 监控告警配置 ====================
+alerts:
+  enabled: true
+  email_enabled: false
+  email_server: "smtp.gmail.com"
+  email_port: 587
+  email_from: "sdn-security@example.com"
+  email_recipients:
+    - "admin@example.com"
+  slack_enabled: false
+  slack_webhook: "https://hooks.slack.com/services/YOUR/WEBHOOK/URL"
+  syslog_enabled: false
+  syslog_server: "localhost"
+  syslog_port: 514
+
+# ==================== 性能配置 ====================
+performance:
+  worker_threads: 4
+  packet_processing_timeout: 1  # 秒
+  flow_expiration_time: 600  # 秒
+  cache_ttl: 300  # 秒
+  batch_processing:  true
+  batch_size: 100
+
+# ==================== 安全配置 ====================
+security:
+  enable_ssl: false
+  ssl_cert:  "/etc/ssl/certs/server.crt"
+  ssl_key: "/etc/ssl/private/server.key"
+  auth_enabled: false
+  auth_method: "basic"  # basic, token
+  rate_limiting_enabled: true
+  rate_limit:  1000  # 请求/分钟
+  ip_filtering_enabled: true
+  allowed_ips:
+    - "127.0.0.1"
+    - "192.168.0.0/16"
+
+# ==================== Mininet配置 ====================
+mininet:
+  enabled: false
+  topo_type: "linear"  # linear, tree, custom
+  num_hosts: 6
+  num_switches: 2
+  link_bandwidth: 10  # Mbps
+  link_delay: 1  # ms
+  controller_ip: "127.0.0.1"
+  controller_port: 6633

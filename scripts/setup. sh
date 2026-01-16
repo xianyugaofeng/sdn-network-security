@@ -5,44 +5,70 @@
 
 set -e
 
-echo "=== SDN Network Security System Setup ==="
+echo "================================"
+echo "SDN Network Security System Setup"
+echo "================================"
 
 # 检查Python版本
 python_version=$(python3 --version 2>&1 | awk '{print $2}')
-echo "Python version:  $python_version"
+echo "✓ Python version: $python_version"
 
 # 创建虚拟环境
 if [ ! -d "venv" ]; then
     echo "Creating virtual environment..."
     python3 -m venv venv
+    echo "✓ Virtual environment created"
 fi
 
 # 激活虚拟环境
 source venv/bin/activate
+echo "✓ Virtual environment activated"
 
 # 升级pip
 echo "Upgrading pip..."
-pip install --upgrade pip setuptools wheel
+pip install --upgrade pip setuptools wheel > /dev/null 2>&1
+echo "✓ Pip upgraded"
 
 # 安装依赖包
 echo "Installing dependencies..."
 pip install -r requirements.txt
+echo "✓ Dependencies installed"
 
-# 创建日志目录
+# 创建必要的目录
+echo "Creating necessary directories..."
 mkdir -p logs
-
-# 创建数据库目录
 mkdir -p data
+mkdir -p config
+mkdir -p docs
+echo "✓ Directories created"
 
-# 下载并安装Mininet（可选）
-if !  command -v mn &> /dev/null; then
-    echo "Installing Mininet..."
-    cd ~
-    git clone https://github.com/mininet/mininet.git
-    cd mininet
-    ./util/install. sh -a
+# 初始化数据库
+echo "Initializing database..."
+python3 -c "from utils.db_helper import DatabaseHelper; db = DatabaseHelper(); print('✓ Database initialized')"
+
+# 检查Ryu是否安装
+echo "Checking Ryu installation..."
+if python3 -c "import ryu" 2>/dev/null; then
+    echo "✓ Ryu is installed"
+else
+    echo "⚠ Warning: Ryu is not installed. Please install it manually if needed."
 fi
 
-echo "=== Setup completed successfully ==="
-echo "To activate the virtual environment, run:"
-echo "source venv/bin/activate"
+# 检查Mininet（可选）
+echo "Checking Mininet installation..."
+if command -v mn &> /dev/null; then
+    echo "✓ Mininet is installed"
+else
+    echo "⚠ Warning: Mininet is not installed.  Install with: sudo mn --version"
+fi
+
+echo ""
+echo "================================"
+echo "Setup completed successfully!"
+echo "================================"
+echo ""
+echo "Next steps:"
+echo "1. Activate virtual environment: source venv/bin/activate"
+echo "2. Start Ryu controller: ryu-manager controllers/ryu_controller.py"
+echo "3. In another terminal, start Mininet:  sudo python scripts/mininet_topo.py"
+echo ""
