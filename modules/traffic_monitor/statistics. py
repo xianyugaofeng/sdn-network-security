@@ -1,0 +1,306 @@
+"""
+流量统计和分析模块
+提供详细的流量统计信息和报表生成
+"""
+
+import logging
+from typing import Dict, List, Tuple
+from collections import defaultdict, Counter
+from datetime import datetime, timedelta
+import json
+
+logger = logging.getLogger(__name__)
+
+
+class StatisticsCollector:
+    """
+    统计收集器
+    """
+    
+    def __init__(self, window_size: int = 3600):
+        """
+        初始化统计收集器
+        
+        Args:
+            window_size: 时间窗口大小（秒）
+        """
+        self.window_size = window_size
+        self.flow_stats = defaultdict(self._empty_stat_dict)
+        self.time_series_data = defaultdict(list)
+        self.last_update = datetime.now()
+    
+    def _empty_stat_dict(self):
+        """
+        返回空的统计字典
+        """
+        return {
+            'packets': 0,
+            'bytes': 0,
+            'duration': 0,
+            'first_seen': None,
+            'last_seen': None,
+            'packet_rate': 0.0,
+            'byte_rate': 0.0
+        }
+    
+    def update_flow_stats(self, flow_key: str, packet_count: int, byte_count: int):
+        """
+        更新流统计
+        
+        Args:
+            flow_key: 流唯一键
+            packet_count: 数据包数
+            byte_count: 字节数
+        """
+        stat = self.flow_stats[flow_key]
+        stat['packets'] += packet_count
+        stat['bytes'] += byte_count
+        stat['last_seen'] = datetime.now().isoformat()
+        
+        if stat['first_seen'] is None:
+            stat['first_seen'] = datetime.now().isoformat()
+    
+    def calculate_rates(self):
+        """
+        计算速率（包/秒、字节/秒）
+        """
+        now = datetime.now()
+        time_delta = (now - self.last_update).total_seconds()
+        
+        if time_delta <= 0:
+            return
+        
+        for flow_key, stat in self. flow_stats.items():
+            stat['packet_rate'] = stat['packets'] / time_delta
+            stat['byte_rate'] = stat['bytes'] / time_delta
+        
+        self.last_update = now
+    
+    def get_summary_statistics(self) -> Dict:
+        """
+        获取汇总统计
+        
+        Returns:
+            统计汇总字典
+        """
+        total_packets = sum(s['packets'] for s in self. flow_stats.values())
+        total_bytes = sum(s['bytes'] for s in self.flow_stats.values())
+        avg_packet_size = total_bytes / total_packets if total_packets > 0 else 0
+        
+        return {
+            'total_flows': len(self.flow_stats),
+            'total_packets':  total_packets,
+            'total_bytes': total_bytes,
+            'average_packet_size': avg_packet_size,
+            'timestamp': datetime.now().isoformat()
+        }
+    
+    def get_top_flows(self, limit: int = 10, sort_by: str = 'bytes') -> List[Dict]:
+        """
+        获取流量最多的流
+        
+        Args:
+            limit: 返回数量
+            sort_by: 排序字段（'bytes' 或 'packets'）
+        
+        Returns:
+            流量排序列表
+        """
+        sorted_flows = sorted(
+            self.flow_stats.items(),
+            key=lambda x:  x[1][sort_by],
+            reverse=True
+        )
+        
+        return [
+            {'flow_key': key, 'stats': stat}
+            for key, stat in sorted_flows[:limit]
+        ]
+    
+    def get_protocol_distribution(self, flows: List[Dict]) -> Dict:
+        """
+        获取协议分布
+        
+        Args:
+            flows: 流列表
+        
+        Returns: 
+            协议分布字典
+        """
+        protocol_bytes = defaultdict(int)
+        protocol_packets = defaultdict(int)
+        
+        for flow in flows:
+            protocol = flow.get('protocol', 'UNKNOWN')
+            protocol_bytes[protocol] += flow. get('packet_length', 0)
+            protocol_packets[protocol] += 1
+        
+        return {
+            'by_bytes': dict(sorted(protocol_bytes.items(), key=lambda x: x[1], reverse=True)),
+            'by_packets': dict(sorted(protocol_packets.items(), key=lambda x: x[1], reverse=True))
+        }
+    
+    def get_port_distribution(self, flows: List[Dict]) -> Dict:
+        """
+        获取端口分布
+        
+        Args:
+            flows: 流列表
+        
+        Returns:
+            端口分布字典
+        """
+        port_stats = defaultdict(lambda: {'packets': 0, 'bytes':  0})
+        
+        for flow in flows:
+            dst_port = flow.get('tp_dst', 'UNKNOWN')
+            port_stats[dst_port]['packets'] += 1
+            port_stats[dst_port]['bytes'] += flow. get('packet_length', 0)
+        
+        # 按字节排序
+        sorted_ports = sorted(
+            port_stats.items(),
+            key=lambda x: x[1]['bytes'],
+            reverse=True
+        )
+        
+        return {
+            'top_ports': [
+                {'port': port, 'stats': stat}
+                for port, stat in sorted_ports[:20]
+            ]
+        }
+    
+    def get_bandwidth_over_time(self, interval: int = 60) -> List[Dict]:
+        """
+        获取时间序列的带宽数据
+        
+        Args: 
+            interval: 时间间隔（秒）
+        
+        Returns:
+            时间序列数据列表
+        """
+        return [
+            {
+                'timestamp': ts,
+                'bandwidth_mbps': bytes_count * 8 / (interval * 1_000_000)
+            }
+            for ts, bytes_count in self.time_series_data. items()
+        ]
+    
+    def get_ip_conversation_matrix(self, flows: List[Dict]) -> Dict:
+        """
+        获取IP通信矩阵
+        
+        Args:
+            flows: 流列表
+        
+        Returns:
+            通信矩阵
+        """
+        conversation_matrix = defaultdict(lambda:  defaultdict(int))
+        
+        for flow in flows:
+            src_ip = flow.get('ip_src')
+            dst_ip = flow.get('ip_dst')
+            
+            if src_ip and dst_ip: 
+                conversation_matrix[src_ip][dst_ip] += flow.get('packet_length', 0)
+        
+        return dict(conversation_matrix)
+    
+    def generate_report(self, flows: List[Dict], filename: str = 'traffic_report.json') -> bool:
+        """
+        生成流量分析报告
+        
+        Args:
+            flows: 流列表
+            filename: 报告文件名
+        
+        Returns: 
+            True: 生成成功
+        """
+        try:
+            report = {
+                'report_time': datetime.now().isoformat(),
+                'summary': self.get_summary_statistics(),
+                'top_flows':  self.get_top_flows(20),
+                'protocol_distribution':  self.get_protocol_distribution(flows),
+                'port_distribution': self.get_port_distribution(flows),
+                'ip_conversations': self.get_ip_conversation_matrix(flows)
+            }
+            
+            with open(filename, 'w') as f:
+                json.dump(report, f, indent=2)
+            
+            logger.info(f"Report generated: {filename}")
+            return True
+        except Exception as e:
+            logger.error(f"Error generating report: {e}")
+            return False
+
+
+class PerformanceMetrics:
+    """
+    性能指标收集器
+    """
+    
+    def __init__(self):
+        """
+        初始化性能指标收集器
+        """
+        self.metrics = defaultdict(list)
+        self.start_time = datetime.now()
+    
+    def record_metric(self, metric_name: str, value: float, timestamp: datetime = None):
+        """
+        记录性能指标
+        
+        Args:
+            metric_name: 指标名称
+            value: 指标值
+            timestamp: 时间戳
+        """
+        if timestamp is None:
+            timestamp = datetime.now()
+        
+        self.metrics[metric_name].append({
+            'value': value,
+            'timestamp': timestamp.isoformat()
+        })
+    
+    def get_metric_statistics(self, metric_name: str) -> Dict:
+        """
+        获取指标统计
+        
+        Args:
+            metric_name: 指标名称
+        
+        Returns:
+            统计字典
+        """
+        values = [m['value'] for m in self. metrics. get(metric_name, [])]
+        
+        if not values:
+            return {}
+        
+        return {
+            'min': min(values),
+            'max': max(values),
+            'avg': sum(values) / len(values),
+            'count': len(values)
+        }
+    
+    def get_all_metrics_summary(self) -> Dict:
+        """
+        获取所有指标汇总
+        
+        Returns:
+            汇总字典
+        """
+        summary = {}
+        for metric_name in self.metrics. keys():
+            summary[metric_name] = self.get_metric_statistics(metric_name)
+        
+        return summary

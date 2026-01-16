@@ -1,0 +1,46 @@
+{
+  "rules": [
+    {
+      "id": 1,
+      "name": "Block SSH from untrusted",
+      "action": "DENY",
+      "protocol": "TCP",
+      "dst_port": 22,
+      "ip_src": "192.168.0.0/16",
+      "priority": 100
+    },
+    {
+      "id": 2,
+      "name": "Allow HTTP traffic",
+      "action": "ALLOW",
+      "protocol": "TCP",
+      "dst_port": 80,
+      "priority": 50
+    },
+    {
+      "id": 3,
+      "name": "Allow HTTPS traffic",
+      "action": "ALLOW",
+      "protocol": "TCP",
+      "dst_port": 443,
+      "priority": 50
+    },
+    {
+      "id":  4,
+      "name":  "Block DDoS-like traffic",
+      "action":  "DENY",
+      "protocol": "TCP",
+      "tcp_flags": 2,
+      "rate_threshold": 1000,
+      "priority": 150
+    }
+  ],
+  "blacklist": [
+    "192.168.1.100",
+    "10.0.0.50"
+  ],
+  "whitelist": [
+    "192.168.1.1",
+    "8.8.8.8"
+  ]
+}

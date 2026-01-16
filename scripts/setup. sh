@@ -1,0 +1,48 @@
+#!/bin/bash
+
+# SDN Network Security System - Setup Script
+# 使用:  bash scripts/setup.sh
+
+set -e
+
+echo "=== SDN Network Security System Setup ==="
+
+# 检查Python版本
+python_version=$(python3 --version 2>&1 | awk '{print $2}')
+echo "Python version:  $python_version"
+
+# 创建虚拟环境
+if [ ! -d "venv" ]; then
+    echo "Creating virtual environment..."
+    python3 -m venv venv
+fi
+
+# 激活虚拟环境
+source venv/bin/activate
+
+# 升级pip
+echo "Upgrading pip..."
+pip install --upgrade pip setuptools wheel
+
+# 安装依赖包
+echo "Installing dependencies..."
+pip install -r requirements.txt
+
+# 创建日志目录
+mkdir -p logs
+
+# 创建数据库目录
+mkdir -p data
+
+# 下载并安装Mininet（可选）
+if !  command -v mn &> /dev/null; then
+    echo "Installing Mininet..."
+    cd ~
+    git clone https://github.com/mininet/mininet.git
+    cd mininet
+    ./util/install. sh -a
+fi
+
+echo "=== Setup completed successfully ==="
+echo "To activate the virtual environment, run:"
+echo "source venv/bin/activate"
