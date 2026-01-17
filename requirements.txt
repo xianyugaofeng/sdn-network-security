@@ -1,6 +1,5 @@
 # SDN Framework - Python 3.6 Compatible
-ryu==4.26
-python-version>=3.6
+ryu==4.34
 
 # Network packet processing - Python 3.6 compatible
 scapy==2.4.3

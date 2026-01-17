@@ -139,10 +139,10 @@ main() {
     # ========== Step 6: 验证安装 ==========
     step "Step 6: 验证 Ryu 4.26 安装"
 
-    if python -c "import ryu; print(ryu.__version__)" 2>/dev/null | grep -q "4.26"; then
+    if python -c "import ryu; print(ryu.__version__)" 2>/dev/null | grep -q "4.34"; then
         success "Ryu 4.26 已正确安装"
     else
-        warning "Ryu 版本不是 4.26，但继续安装..."
+        warning "Ryu 版本不是 4.34，但继续安装..."
     fi
     echo ""
 
