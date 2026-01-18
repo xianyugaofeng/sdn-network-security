@@ -18,7 +18,7 @@
 """
 
 from .dynamic_firewall import DynamicFirewall
-from . rule_engine import RuleEngine
+from .rule_engine import RuleEngine
 
 __all__ = [
     'DynamicFirewall',

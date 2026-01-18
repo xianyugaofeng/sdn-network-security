@@ -76,7 +76,7 @@ class RuleEngine:
         # 验证端口
         if 'tp_src' in rule:
             if not self._validate_port(rule['tp_src']):
-                logger. error(f"Invalid source port:  {rule['tp_src']}")
+                logger.error(f"Invalid source port: {rule['tp_src']}")
                 return False
         
         if 'tp_dst' in rule:
@@ -124,7 +124,7 @@ class RuleEngine:
         except ValueError:
             return False
     
-    def _validate_port(self, port:  Any) -> bool:
+    def _validate_port(self, port: Any) -> bool:
         """
         验证端口号
         
@@ -170,7 +170,7 @@ class RuleEngine:
             return False
         
         # 检查源IP
-        if not self._match_ip(flow_info. get('ip_src'), rule.get('ip_src')):
+        if not self._match_ip(flow_info.get('ip_src'), rule.get('ip_src')):
             return False
         
         # 检查目标IP
@@ -178,7 +178,7 @@ class RuleEngine:
             return False
         
         # 检查源端口
-        if not self._match_port(flow_info. get('tp_src'), rule.get('tp_src')):
+        if not self._match_port(flow_info.get('tp_src'), rule.get('tp_src')):
             return False
         
         # 检查目标端口
@@ -237,11 +237,40 @@ class RuleEngine:
         except ValueError:
             return False
     
-    def _match_port(self, flow_port: Any, rule_port:  Any) -> bool:
+    def _match_port(self, flow_port: Any, rule_port: Any) -> bool:
         """
         匹配端口号
         """
         if rule_port is None or flow_port is None:
             return True
         
-        try
+        try:
+            flow_port_num = int(flow_port)
+            rule_port_num = int(rule_port)
+            return flow_port_num == rule_port_num
+        except (ValueError, TypeError):
+            return False
+    
+    def _match_mac(self, flow_mac: str, rule_mac: str) -> bool:
+        """
+        匹配MAC地址
+        """
+        if rule_mac is None or flow_mac is None:
+            return True
+        
+        return flow_mac.lower() == rule_mac.lower()
+    
+    def _match_tcp_flags(self, flow_flags: Any, rule_flags: Any) -> bool:
+        """
+        匹配TCP标志
+        """
+        if rule_flags is None or flow_flags is None:
+            return True
+        
+        try:
+            flow_flags_int = int(flow_flags)
+            rule_flags_int = int(rule_flags)
+            # 检查flow_flags是否包含rule_flags的所有标志位
+            return (flow_flags_int & rule_flags_int) == rule_flags_int
+        except (ValueError, TypeError):
+            return False
