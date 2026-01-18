@@ -110,7 +110,7 @@ class KMeansAnalyzer:
         min_distance = float('inf')
         nearest_idx = 0
         
-        for idx, centroid in enumerate(self. centroids):
+        for idx, centroid in enumerate(self.centroids):
             distance = self._euclidean_distance(features, centroid)
             if distance < min_distance:
                 min_distance = distance

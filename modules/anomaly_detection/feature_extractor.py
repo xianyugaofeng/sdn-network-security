@@ -40,7 +40,7 @@ class FeatureExtractor:
         """
         初始化特征的最小最大值范围
         """
-        self. min_values = {
+        self.min_values = {
             'packet_size': 0,
             'packet_rate': 0,
             'protocol_type':  0,
@@ -115,7 +115,7 @@ class FeatureExtractor:
         """
         # 简化实现，实际应计算时间窗口内的包速率
         # 返回值范围：[0, 10000]
-        return 1. 0  # 默认值
+        return 1.0  # 默认值
     
     def extract_protocol_feature(self, flow: Dict) -> float:
         """
@@ -129,9 +129,9 @@ class FeatureExtractor:
         """
         protocol = flow.get('protocol', 'UNKNOWN')
         protocol_encoding = {
-            'TCP': 0. 0,
+            'TCP': 0.0,
             'UDP': 0.33,
-            'ICMP':  0.67,
+            'ICMP': 0.67,
             'OTHER': 1.0
         }
         return protocol_encoding.get(protocol, 0.5)
