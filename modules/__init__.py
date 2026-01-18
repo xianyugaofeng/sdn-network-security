@@ -5,7 +5,7 @@ SDN Network Security Modules
 
 from modules.firewall import DynamicFirewall, RuleEngine
 from modules.traffic_monitor import TrafficCollector, StatisticsCollector
-from modules. intrusion_detection import DetectionEngine, SnortIntegration
+from modules.intrusion_detection import DetectionEngine, SnortIntegration
 from modules.anomaly_detection import KMeansAnalyzer, FeatureExtractor
 
 __version__ = '1.0.0'

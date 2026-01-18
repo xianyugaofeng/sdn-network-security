@@ -3,16 +3,24 @@ SDN网络安全控制器 - 基于Ryu框架
 支持动态防火墙、流量监控、入侵检测等功能
 """
 
+import sys
+import os
+
+# Add project root to Python path to enable imports
+project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+if project_root not in sys.path:
+    sys.path.insert(0, project_root)
+
 from ryu.base import app_manager
 from ryu.controller import ofp_event
-from ryu. controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev_cls
+from ryu.controller.handler import CONFIG_DISPATCHER, MAIN_DISPATCHER, set_ev_cls
 from ryu.ofproto import ofproto_v1_3
-from ryu.lib. packet import packet, ethernet, ipv4, tcp, udp, icmp
+from ryu.lib.packet import packet, ethernet, ipv4, tcp, udp, icmp
 from ryu.lib import hub
 import logging
 import json
 from datetime import datetime
-from modules.firewall. dynamic_firewall import DynamicFirewall
+from modules.firewall.dynamic_firewall import DynamicFirewall
 from modules.traffic_monitor.traffic_collector import TrafficCollector
 from modules.intrusion_detection.detection_engine import DetectionEngine
 from modules.anomaly_detection.kmeans_analyzer import KMeansAnalyzer
@@ -60,28 +68,28 @@ class SDNSecurityController(app_manager.RyuApp):
         ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         
-        self.datapaths[datapath. id] = datapath
+        self.datapaths[datapath.id] = datapath
         logger.info(f"Switch {datapath.id} connected")
         
         # 安装table miss流表项
         self._install_table_miss(datapath)
         
         # 应用防火墙初始规则
-        self. firewall.install_base_rules(datapath)
+        self.firewall.install_base_rules(datapath)
     
     def _install_table_miss(self, datapath):
         """
         安装table miss流表项
         """
         ofproto = datapath.ofproto
-        parser = datapath. ofproto_parser
+        parser = datapath.ofproto_parser
         
         # 创建match条件（匹配所有包）
         match = parser.OFPMatch()
         
         # 创建action：发送到控制器
         actions = [parser.OFPActionOutput(ofproto.OFPP_CONTROLLER,
-                                          ofproto. OFPCML_NO_BUFFER)]
+                                          ofproto.OFPCML_NO_BUFFER)]
         
         self.add_flow(datapath, 0, match, actions)
         logger.debug(f"Table miss flow installed on switch {datapath.id}")
@@ -94,18 +102,18 @@ class SDNSecurityController(app_manager.RyuApp):
         msg = ev.msg
         datapath = msg.datapath
         ofproto = datapath.ofproto
-        parser = datapath. ofproto_parser
+        parser = datapath.ofproto_parser
         in_port = msg.match['in_port']
         
         # 解析数据包
         pkt = packet.Packet(msg.data)
         eth = pkt.get_protocol(ethernet.ethernet)
         
-        if eth. dst == '00:00:00:00:00:00':
+        if eth.dst == '00:00:00:00:00:00':
             return
         
         # 提取流信息
-        flow_info = self._extract_flow_info(pkt, in_port, datapath. id)
+        flow_info = self._extract_flow_info(pkt, in_port, datapath.id)
         
         # 防火墙检查
         if not self.firewall.check_policy(flow_info):
@@ -113,7 +121,7 @@ class SDNSecurityController(app_manager.RyuApp):
             return  # 丢弃数据包
         
         # 流量监控
-        self. traffic_collector.record_flow(flow_info)
+        self.traffic_collector.record_flow(flow_info)
         
         # 入侵检测
         alert = self.ids_engine.detect(flow_info)
@@ -165,16 +173,16 @@ class SDNSecurityController(app_manager.RyuApp):
             flow_info['protocol'] = 'TCP'
             flow_info['tcp_flags'] = tcp_pkt.flags
         
-        udp_pkt = pkt. get_protocol(udp.udp)
+        udp_pkt = pkt.get_protocol(udp.udp)
         if udp_pkt:
             flow_info['tp_src'] = udp_pkt.src_port
-            flow_info['tp_dst'] = udp_pkt. dst_port
+            flow_info['tp_dst'] = udp_pkt.dst_port
             flow_info['protocol'] = 'UDP'
         
-        icmp_pkt = pkt. get_protocol(icmp.icmp)
+        icmp_pkt = pkt.get_protocol(icmp.icmp)
         if icmp_pkt:
             flow_info['protocol'] = 'ICMP'
-            flow_info['icmp_type'] = icmp_pkt. type
+            flow_info['icmp_type'] = icmp_pkt.type
             flow_info['icmp_code'] = icmp_pkt.code
         
         return flow_info
@@ -184,13 +192,13 @@ class SDNSecurityController(app_manager.RyuApp):
         处理数据包转发
         """
         ofproto = datapath.ofproto
-        parser = datapath. ofproto_parser
+        parser = datapath.ofproto_parser
         
         # 简化的转发逻辑（实际应用中需更复杂的MAC表管理）
         out_port = ofproto.OFPP_FLOOD
         
         # 创建match条件
-        match = parser. OFPMatch(
+        match = parser.OFPMatch(
             eth_src=flow_info['eth_src'],
             eth_dst=flow_info['eth_dst']
         )
@@ -220,9 +228,9 @@ class SDNSecurityController(app_manager.RyuApp):
         logger.critical(f"Intrusion event:  {flow_info}")
         
         # 创建阻断规则
-        block_match = datapath.ofproto_parser. OFPMatch(
+        block_match = datapath.ofproto_parser.OFPMatch(
             eth_type=0x0800,
-            ipv4_src=flow_info. get('ip_src'),
+            ipv4_src=flow_info.get('ip_src'),
             ipv4_dst=flow_info.get('ip_dst')
         )
         
@@ -232,9 +240,9 @@ class SDNSecurityController(app_manager.RyuApp):
         # 记录到数据库
         self.db.insert_intrusion_alert({
             'timestamp': flow_info['timestamp'],
-            'source_ip': flow_info. get('ip_src'),
+            'source_ip': flow_info.get('ip_src'),
             'dest_ip': flow_info.get('ip_dst'),
-            'protocol': flow_info. get('protocol'),
+            'protocol': flow_info.get('protocol'),
             'severity': 'HIGH'
         })
     
@@ -242,10 +250,10 @@ class SDNSecurityController(app_manager.RyuApp):
         """
         安装流表项
         """
-        ofproto = datapath. ofproto
+        ofproto = datapath.ofproto
         parser = datapath.ofproto_parser
         
-        inst = [parser.OFPInstructionActions(ofproto. OFPIT_APPLY_ACTIONS, actions)]
+        inst = [parser.OFPInstructionActions(ofproto.OFPIT_APPLY_ACTIONS, actions)]
         
         if buffer_id:
             mod = parser.OFPFlowMod(
@@ -302,7 +310,7 @@ class SDNSecurityController(app_manager.RyuApp):
         
         # 输出统计信息
         for stat in body: 
-            logger.debug(f"Flow {stat. match} - Packets: {stat.packet_count}, Bytes: {stat.byte_count}")
+            logger.debug(f"Flow {stat.match} - Packets: {stat.packet_count}, Bytes: {stat.byte_count}")
     
     def _anomaly_detection_loop(self):
         """
@@ -318,7 +326,7 @@ class SDNSecurityController(app_manager.RyuApp):
                 
                 if anomalies:
                     logger.warning(f"Anomalies detected: {anomalies}")
-                    self. db.insert_anomaly_alert(anomalies)
+                    self.db.insert_anomaly_alert(anomalies)
             
             hub.sleep(60)  # 每分钟检测一次
 
@@ -327,7 +335,7 @@ def main():
     """
     主程序入口
     """
-    app_manager. run_apps([SDNSecurityController])
+    app_manager.run_apps([SDNSecurityController])
 
 
 if __name__ == '__main__':
