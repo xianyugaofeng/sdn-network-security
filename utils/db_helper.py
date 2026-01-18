@@ -5,13 +5,20 @@
 
 from __future__ import print_function
 import logging
-import sqlite3
 import json
 import os
 from datetime import datetime
 from pathlib import Path
 
 logger = logging.getLogger(__name__)
+
+# Try to import sqlite3, make it optional
+try:
+    import sqlite3
+    SQLITE_AVAILABLE = True
+except ImportError:
+    SQLITE_AVAILABLE = False
+    logger.warning('SQLite3 is not available. Database operations will be disabled.')
 
 
 class DatabaseHelper(object):
@@ -27,10 +34,17 @@ class DatabaseHelper(object):
             db_path: 数据库文件路径
         """
         self.db_path = db_path
+        self.sqlite_available = SQLITE_AVAILABLE
+
+        if not self.sqlite_available:
+            logger.warning('SQLite3 is not available. DatabaseHelper initialized in no-op mode.')
+            self.conn = None
+            self.cursor = None
+            return
 
         # 创建数据目录
         db_dir = os.path.dirname(db_path)
-        if db_dir and not os.path. exists(db_dir):
+        if db_dir and not os.path.exists(db_dir):
             os.makedirs(db_dir)
 
         self.conn = None
@@ -42,6 +56,9 @@ class DatabaseHelper(object):
         """
         初始化数据库（创建表）
         """
+        if not self.sqlite_available:
+            return
+        
         try:
             self.connect()
             self._create_tables()
@@ -79,7 +96,7 @@ class DatabaseHelper(object):
         """
         try: 
             # 流量记录表
-            self. cursor.execute('''
+            self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS flow_records (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
@@ -101,7 +118,7 @@ class DatabaseHelper(object):
             ''')
 
             # 入侵告警表
-            self.cursor. execute('''
+            self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS intrusion_alerts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
@@ -121,7 +138,7 @@ class DatabaseHelper(object):
             ''')
 
             # 异常检测表
-            self. cursor.execute('''
+            self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS anomaly_alerts (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     timestamp TEXT NOT NULL,
@@ -141,7 +158,7 @@ class DatabaseHelper(object):
             ''')
 
             # 防火墙规则表
-            self.cursor. execute('''
+            self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS firewall_rules (
                     id INTEGER PRIMARY KEY,
                     name TEXT NOT NULL,
@@ -158,7 +175,7 @@ class DatabaseHelper(object):
             ''')
 
             # 会话表
-            self.cursor. execute('''
+            self.cursor.execute('''
                 CREATE TABLE IF NOT EXISTS sessions (
                     id INTEGER PRIMARY KEY AUTOINCREMENT,
                     src_ip TEXT,
@@ -177,7 +194,7 @@ class DatabaseHelper(object):
             self.conn.commit()
             logger.debug('All database tables created successfully')
         except Exception as e:
-            logger. error('Error creating tables: %s', str(e))
+            logger.error('Error creating tables: %s', str(e))
 
     def insert_flow_record(self, flow_data):
         """
@@ -189,6 +206,9 @@ class DatabaseHelper(object):
         Returns:
             True:  插入成功
         """
+        if not self.sqlite_available:
+            return False
+        
         try:
             sql = '''
                 INSERT INTO flow_records 
@@ -197,12 +217,12 @@ class DatabaseHelper(object):
             '''
 
             values = (
-                flow_data. get('timestamp', datetime.now().isoformat()),
+                flow_data.get('timestamp', datetime.now().isoformat()),
                 flow_data.get('src_ip'),
                 flow_data.get('dst_ip'),
                 flow_data.get('protocol'),
                 flow_data.get('src_port'),
-                flow_data. get('dst_port'),
+                flow_data.get('dst_port'),
                 flow_data.get('packet_count', 1),
                 flow_data.get('byte_count', 0)
             )
@@ -224,6 +244,9 @@ class DatabaseHelper(object):
         Returns:
             True: 插入成功
         """
+        if not self.sqlite_available:
+            return False
+        
         try:
             sql = '''
                 INSERT INTO intrusion_alerts
@@ -241,9 +264,9 @@ class DatabaseHelper(object):
                 alert_data.get('description', '')
             )
 
-            self.cursor. execute(sql, values)
+            self.cursor.execute(sql, values)
             self.conn.commit()
-            logger.info('Intrusion alert recorded: %s', alert_data. get('source_ip'))
+            logger.info('Intrusion alert recorded: %s', alert_data.get('source_ip'))
             return True
         except Exception as e:
             logger.error('Error inserting intrusion alert: %s', str(e))
@@ -259,6 +282,9 @@ class DatabaseHelper(object):
         Returns:
             True: 插入成功
         """
+        if not self.sqlite_available:
+            return False
+        
         try:
             sql = '''
                 INSERT INTO anomaly_alerts
@@ -268,7 +294,7 @@ class DatabaseHelper(object):
 
             for anomaly in anomalies: 
                 values = (
-                    anomaly.get('timestamp', datetime. now().isoformat()),
+                    anomaly.get('timestamp', datetime.now().isoformat()),
                     anomaly.get('type', 'UNKNOWN'),
                     anomaly.get('severity', 'MEDIUM'),
                     anomaly.get('flow_info', {}).get('src_ip'),
