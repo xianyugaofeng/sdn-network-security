@@ -256,9 +256,9 @@ class FeatureExtractor:
         """
         提取协议特征
         """
-        protocol = flow. get('protocol', 'UNKNOWN')
-        protocol_map = {'TCP': 0. 3, 'UDP': 0.6, 'ICMP': 0.9, 'OTHER': 0.0}
-        return protocol_map. get(protocol, 0.0)
+        protocol = flow.get('protocol', 'UNKNOWN')
+        protocol_map = {'TCP': 0.3, 'UDP': 0.6, 'ICMP': 0.9, 'OTHER': 0.0}
+        return protocol_map.get(protocol, 0.0)
     
     def _extract_port_feature(self, flow: Dict) -> float:
         """
