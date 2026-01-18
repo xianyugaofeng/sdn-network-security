@@ -27,7 +27,7 @@ class TrafficCollector:
         """
         self.max_flows = max_flows
         self.window_size = window_size
-        self. flows = deque(maxlen=max_flows)  # 流队列
+        self.flows = deque(maxlen=max_flows)  # 流队列
         self.flow_stats = defaultdict(lambda: {
             'packets': 0,
             'bytes': 0,
@@ -105,7 +105,7 @@ class TrafficCollector:
         recent_flows = []
         for flow in self.flows:
             try:
-                flow_time = datetime.fromisoformat(flow. get('timestamp'))
+                flow_time = datetime.fromisoformat(flow.get('timestamp'))
                 if flow_time > cutoff_time:
                     recent_flows.append(flow)
             except Exception as e:
@@ -141,7 +141,7 @@ class TrafficCollector:
         src_ip_stats = defaultdict(int)
         
         for flow in self.flows:
-            src_ip = flow. get('ip_src')
+            src_ip = flow.get('ip_src')
             if src_ip: 
                 src_ip_stats[src_ip] += flow.get('packet_length', 0)
         

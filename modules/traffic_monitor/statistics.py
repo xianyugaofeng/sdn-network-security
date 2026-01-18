@@ -70,7 +70,7 @@ class StatisticsCollector:
         if time_delta <= 0:
             return
         
-        for flow_key, stat in self. flow_stats.items():
+        for flow_key, stat in self.flow_stats.items():
             stat['packet_rate'] = stat['packets'] / time_delta
             stat['byte_rate'] = stat['bytes'] / time_delta
         
@@ -83,13 +83,13 @@ class StatisticsCollector:
         Returns:
             统计汇总字典
         """
-        total_packets = sum(s['packets'] for s in self. flow_stats.values())
+        total_packets = sum(s['packets'] for s in self.flow_stats.values())
         total_bytes = sum(s['bytes'] for s in self.flow_stats.values())
         avg_packet_size = total_bytes / total_packets if total_packets > 0 else 0
         
         return {
             'total_flows': len(self.flow_stats),
-            'total_packets':  total_packets,
+            'total_packets': total_packets,
             'total_bytes': total_bytes,
             'average_packet_size': avg_packet_size,
             'timestamp': datetime.now().isoformat()
@@ -108,7 +108,7 @@ class StatisticsCollector:
         """
         sorted_flows = sorted(
             self.flow_stats.items(),
-            key=lambda x:  x[1][sort_by],
+            key=lambda x: x[1][sort_by],
             reverse=True
         )
         
@@ -132,7 +132,7 @@ class StatisticsCollector:
         
         for flow in flows:
             protocol = flow.get('protocol', 'UNKNOWN')
-            protocol_bytes[protocol] += flow. get('packet_length', 0)
+            protocol_bytes[protocol] += flow.get('packet_length', 0)
             protocol_packets[protocol] += 1
         
         return {
@@ -150,12 +150,12 @@ class StatisticsCollector:
         Returns:
             端口分布字典
         """
-        port_stats = defaultdict(lambda: {'packets': 0, 'bytes':  0})
+        port_stats = defaultdict(lambda: {'packets': 0, 'bytes': 0})
         
         for flow in flows:
             dst_port = flow.get('tp_dst', 'UNKNOWN')
             port_stats[dst_port]['packets'] += 1
-            port_stats[dst_port]['bytes'] += flow. get('packet_length', 0)
+            port_stats[dst_port]['bytes'] += flow.get('packet_length', 0)
         
         # 按字节排序
         sorted_ports = sorted(
@@ -186,7 +186,7 @@ class StatisticsCollector:
                 'timestamp': ts,
                 'bandwidth_mbps': bytes_count * 8 / (interval * 1_000_000)
             }
-            for ts, bytes_count in self.time_series_data. items()
+            for ts, bytes_count in self.time_series_data.items()
         ]
     
     def get_ip_conversation_matrix(self, flows: List[Dict]) -> Dict:
@@ -199,7 +199,7 @@ class StatisticsCollector:
         Returns:
             通信矩阵
         """
-        conversation_matrix = defaultdict(lambda:  defaultdict(int))
+        conversation_matrix = defaultdict(lambda: defaultdict(int))
         
         for flow in flows:
             src_ip = flow.get('ip_src')
@@ -225,8 +225,8 @@ class StatisticsCollector:
             report = {
                 'report_time': datetime.now().isoformat(),
                 'summary': self.get_summary_statistics(),
-                'top_flows':  self.get_top_flows(20),
-                'protocol_distribution':  self.get_protocol_distribution(flows),
+                'top_flows': self.get_top_flows(20),
+                'protocol_distribution': self.get_protocol_distribution(flows),
                 'port_distribution': self.get_port_distribution(flows),
                 'ip_conversations': self.get_ip_conversation_matrix(flows)
             }
@@ -280,7 +280,7 @@ class PerformanceMetrics:
         Returns:
             统计字典
         """
-        values = [m['value'] for m in self. metrics. get(metric_name, [])]
+        values = [m['value'] for m in self.metrics.get(metric_name, [])]
         
         if not values:
             return {}
@@ -300,7 +300,7 @@ class PerformanceMetrics:
             汇总字典
         """
         summary = {}
-        for metric_name in self.metrics. keys():
+        for metric_name in self.metrics.keys():
             summary[metric_name] = self.get_metric_statistics(metric_name)
         
         return summary

@@ -48,7 +48,7 @@ __doc__ = """
 
 示例代码：
 --------
-from modules. traffic_monitor import TrafficCollector, StatisticsCollector
+from modules.traffic_monitor import TrafficCollector, StatisticsCollector
 
 # 初始化采集器
 collector = TrafficCollector(max_flows=10000)
