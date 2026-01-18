@@ -120,7 +120,7 @@ class DetectionEngine:
         """
         检查协议异常
         """
-        protocol = flow_info. get('protocol')
+        protocol = flow_info.get('protocol')
         ip_proto = flow_info.get('ip_proto')
         
         # 检查不合理的TTL值
@@ -130,7 +130,7 @@ class DetectionEngine:
         
         # 检查TCP标志异常
         if protocol == 'TCP':
-            tcp_flags = flow_info. get('tcp_flags', 0)
+            tcp_flags = flow_info.get('tcp_flags', 0)
             # SYN-ACK without SYN (异常)
             if tcp_flags == 18 and tcp_flags == 20:
                 return "Suspicious TCP flags combination"
@@ -157,7 +157,7 @@ class DetectionEngine:
         """
         for rule in self. SNORT_RULES:
             # 协议匹配
-            if rule. get('protocol') != flow_info.get('protocol'):
+            if rule.get('protocol') != flow_info.get('protocol'):
                 continue
             
             # 目的端口匹配
@@ -170,7 +170,7 @@ class DetectionEngine:
             if content and not self._check_content(flow_info, content):
                 continue
             
-            logger.warning(f"Snort rule matched: {rule. get('msg')}")
+            logger.warning(f"Snort rule matched: {rule.get('msg')}")
             return {
                 'rule_id': rule.get('sid'),
                 'message': rule.get('msg'),
@@ -226,14 +226,26 @@ class DetectionEngine:
         # 简化实现，实际应检查数据包有效负载
         return True
     
-    def _create_alert(self, alert_msg: str, flow_info: Dict) -> Dict:
+    def _create_alert(self, alert_msg, flow_info: Dict) -> Dict:
         """
         创建告警
+        
+        Args:
+            alert_msg: 告警消息（可以是字符串或字典）
+            flow_info: 流信息
         """
+        # Handle both string and dict alert messages
+        if isinstance(alert_msg, dict):
+            message = alert_msg.get('message', 'Unknown alert')
+            severity = alert_msg.get('severity', 'HIGH')
+        else:
+            message = str(alert_msg)
+            severity = 'HIGH'
+        
         alert = {
             'timestamp': datetime.now().isoformat(),
-            'severity': 'HIGH',
-            'message':  alert_msg,
+            'severity': severity,
+            'message': message,
             'source_ip': flow_info.get('ip_src'),
             'dest_ip': flow_info.get('ip_dst'),
             'protocol': flow_info.get('protocol'),
@@ -243,7 +255,12 @@ class DetectionEngine:
         self.alerts.append(alert)
         self.statistics['total_alerts'] += 1
         
-        alert_type = alert_msg.split(': ')[0]
+        # Extract alert type from message
+        if isinstance(message, str):
+            alert_type = message.split(': ')[0] if ': ' in message else message.split(':')[0] if ':' in message else 'UNKNOWN'
+        else:
+            alert_type = 'UNKNOWN'
+        
         self.statistics['alerts_by_type'][alert_type] = \
             self.statistics['alerts_by_type'].get(alert_type, 0) + 1
         

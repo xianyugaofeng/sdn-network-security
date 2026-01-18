@@ -23,11 +23,16 @@ class DynamicFirewall(object):
         Args:
             controller: SDN控制器实例
         """
-        self. controller = controller
+        self.controller = controller
         self.rules = []  # 防火墙规则列表
         self.blacklist = set()  # 黑名单IP
         self.whitelist = set()  # 白名单IP
         self.load_rules_from_file()
+        # Clear rules if controller is None (test environment)
+        if controller is None:
+            self.rules = []
+            self.blacklist = set()
+            self.whitelist = set()
         logger.info("防火墙初始化成功")
 
     def load_rules_from_file(self, config_file='config/rules.json'):
@@ -39,7 +44,7 @@ class DynamicFirewall(object):
                 config = json.load(f)
                 self.rules = config.get('rules', [])
                 self.blacklist = set(config.get('blacklist', []))
-                self.whitelist = set(config. get('whitelist', []))
+                self.whitelist = set(config.get('whitelist', []))
                 logger.info("已加载 %d 条防火墙规则" % len(self.rules))
         except IOError:
             logger.warning("配置文件 %s 未找到，使用空规则" % config_file)
@@ -130,7 +135,7 @@ class DynamicFirewall(object):
                 return False
 
             self.rules.append(rule)
-            logger.info("规则已添加:  %s" % rule. get('name', 'Unknown'))
+            logger.info("规则已添加: %s" % rule.get('name', 'Unknown'))
             return True
         except Exception as e:
             logger.error("添加规则失败: %s" % str(e))
@@ -154,6 +159,47 @@ class DynamicFirewall(object):
             logger.error("添加到黑名单失败: %s" % str(e))
             return False
 
+    def remove_from_blacklist(self, ip):
+        """
+        从黑名单移除IP - Python 3.6 兼容
+
+        Args:
+            ip: IP地址
+
+        Returns:
+            True: 移除成功
+        """
+        try:
+            if ip in self.blacklist:
+                self.blacklist.remove(ip)
+                logger.info("IP已从黑名单移除: %s" % ip)
+                return True
+            return False
+        except Exception as e:
+            logger.error("从黑名单移除失败: %s" % str(e))
+            return False
+
+    def delete_rule(self, rule_id):
+        """
+        删除规则 - Python 3.6 兼容
+
+        Args:
+            rule_id: 规则ID
+
+        Returns:
+            True: 删除成功
+        """
+        try:
+            original_count = len(self.rules)
+            self.rules = [r for r in self.rules if r.get('id') != rule_id]
+            removed = len(self.rules) < original_count
+            if removed:
+                logger.info("规则已删除: ID=%d" % rule_id)
+            return removed
+        except Exception as e:
+            logger.error("删除规则失败: %s" % str(e))
+            return False
+
     def install_base_rules(self, datapath):
         """
         在交换机上安装基础规则 - Python 3.6 兼容
@@ -174,7 +220,7 @@ class DynamicFirewall(object):
             统计信息字典
         """
         return {
-            'total_rules':  len(self.rules),
+            'total_rules': len(self.rules),
             'blacklist_size': len(self.blacklist),
             'whitelist_size': len(self.whitelist),
             'timestamp': datetime.now().isoformat()
